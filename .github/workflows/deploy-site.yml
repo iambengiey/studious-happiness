@@ -1,0 +1,35 @@
+name: CampusConnect Africa CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - work
+  workflow_dispatch:
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run tests
+        run: npm test
+
+      - name: Ensure docs are not in public build output
+        run: npm run verify:no-public-docs

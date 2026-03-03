@@ -1,0 +1,11 @@
+{
+  "name": "campusconnect-africa",
+  "private": true,
+  "version": "2.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "verify:no-public-docs": "./scripts/verify-no-public-docs.sh"
+  }
+}
