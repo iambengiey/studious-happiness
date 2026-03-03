@@ -1,0 +1,23 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/(README\\.md|readme|docs|doc|deploy|how-to-deploy|installation|setup)/?$",
+      "status": 404
+    },
+    {
+      "src": "^/.*\\.(md|txt)$",
+      "status": 404
+    }
+  ]
+}
