@@ -1,0 +1,84 @@
+name: Deploy Site
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - work
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run tests
+        run: npm test
+
+      - name: Ensure public build output contains no markdown/text docs
+        run: npm run verify:no-public-docs
+
+      - name: Build site
+        run: npm run build --if-present
+
+      - name: Select publish directory
+        id: publish_dir
+        run: |
+          for dir in dist build out public; do
+            if [ -d "$dir" ]; then
+              echo "Found publish directory: $dir"
+              echo "path=$dir" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          echo "No publish directory found. Expected one of: dist, build, out, public." >&2
+          echo "Add a build step that outputs one of those directories or update this workflow." >&2
+          exit 1
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.publish_dir.outputs.path }}
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
