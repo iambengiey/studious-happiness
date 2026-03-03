@@ -1,62 +1,30 @@
-const { assertCanManageSchoolData } = require('../auth/policies');
-const { assertSameSchool, assertSchoolId } = require('../tenant/scope');
+const { assertCanImport } = require('../auth/policies');
+const { assertUserIsolation, withInstitutionScope } = require('../tenant/scope');
 const { AuditEventType } = require('../audit/events');
 
-class SchoolDataService {
+class InstitutionDataService {
   constructor({ auditLog }) {
     this.auditLog = auditLog;
-    this.records = [];
+    this.imports = [];
   }
 
-  importData({ actor, school_id, datasetName, rowCount }) {
-    assertSchoolId(school_id);
-    assertSameSchool(actor.school_id, school_id);
-    assertCanManageSchoolData(actor.role);
+  importContactsCsv({ actor, institution_id, country_code, file_name, row_count }) {
+    assertCanImport(actor);
+    assertUserIsolation(actor, institution_id);
 
-    const importRecord = {
-      school_id,
-      datasetName,
-      rowCount,
-      importedBy: actor.user_id,
-    };
-
-    this.records.push(importRecord);
+    const row = withInstitutionScope({ id: `imp-${this.imports.length + 1}`, file_name, row_count }, institution_id, country_code);
+    this.imports.push(row);
 
     this.auditLog.record({
       type: AuditEventType.DATA_IMPORTED,
-      school_id,
+      institution_id,
       actor_user_id: actor.user_id,
-      dataset_name: datasetName,
-      row_count: rowCount,
+      file_name,
+      row_count,
     });
 
-    return importRecord;
-  }
-
-  editData({ actor, school_id, entityType, entityId, changes }) {
-    assertSchoolId(school_id);
-    assertSameSchool(actor.school_id, school_id);
-    assertCanManageSchoolData(actor.role);
-
-    const editRecord = {
-      school_id,
-      entityType,
-      entityId,
-      changes,
-      editedBy: actor.user_id,
-    };
-
-    this.auditLog.record({
-      type: AuditEventType.DATA_EDITED,
-      school_id,
-      actor_user_id: actor.user_id,
-      entity_type: entityType,
-      entity_id: entityId,
-      change_keys: Object.keys(changes || {}),
-    });
-
-    return editRecord;
+    return row;
   }
 }
 
-module.exports = { SchoolDataService };
+module.exports = { InstitutionDataService };

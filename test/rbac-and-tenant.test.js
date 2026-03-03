@@ -3,155 +3,124 @@ const assert = require('node:assert/strict');
 
 const { Role } = require('../src/auth/roles');
 const { AuditLog, AuditEventType } = require('../src/audit/events');
-const { SchoolMembershipService } = require('../src/services/schoolMembershipService');
-const { SchoolDataService } = require('../src/services/schoolDataService');
-const { MessageService } = require('../src/services/messageService');
-const { withSchoolScope, assertTenantScopedQuery } = require('../src/tenant/scope');
+const { InstitutionService } = require('../src/services/institutionService');
+const { InstitutionDataService } = require('../src/services/schoolDataService');
+const { HierarchyService } = require('../src/services/hierarchyService');
+const { loadComplianceProfile } = require('../src/compliance/engine');
+const { MessagingService } = require('../src/services/messageService');
+const { RetryQueue } = require('../src/jobs/queue');
+const { ConnectorRegistry } = require('../src/messaging/connectors');
+const { createServer, parseAuth } = require('../src/server');
 
-test('school_owner can invite admin/viewer but not owner', () => {
+test('onboarding loads country compliance profile and enforces institution scoping', () => {
   const auditLog = new AuditLog();
-  const service = new SchoolMembershipService({ auditLog });
-  const owner = { user_id: 'u-owner', role: Role.SCHOOL_OWNER, school_id: 's1' };
+  const service = new InstitutionService({ auditLog });
+  const platform = { user_id: 'u-p', role: Role.PLATFORM_ADMIN };
 
-  const admin = service.inviteUser({
-    actor: owner,
-    targetUserId: 'u-admin',
-    targetRole: Role.SCHOOL_ADMIN,
-    school_id: 's1',
+  const institution = service.onboardInstitution({
+    actor: platform,
+    institution_id: 'inst-1',
+    institution_name: 'Campus A',
+    country_code: 'ZA',
   });
 
-  const viewer = service.inviteUser({
-    actor: owner,
-    targetUserId: 'u-viewer',
-    targetRole: Role.SCHOOL_VIEWER,
-    school_id: 's1',
-  });
+  assert.equal(institution.compliance_profile.country_code, 'ZA');
 
-  assert.equal(admin.role, Role.SCHOOL_ADMIN);
-  assert.equal(viewer.role, Role.SCHOOL_VIEWER);
-
+  const owner = { user_id: 'u-o', role: Role.INSTITUTION_OWNER, institution_id: 'inst-1' };
+  assert.doesNotThrow(() => service.inviteUser({ actor: owner, target_user_id: 'u-a', role: Role.INSTITUTION_ADMIN, institution_id: 'inst-1' }));
   assert.throws(
-    () =>
-      service.inviteUser({
-        actor: owner,
-        targetUserId: 'u-owner2',
-        targetRole: Role.SCHOOL_OWNER,
-        school_id: 's1',
-      }),
-    /cannot invite user with role school_owner/,
+    () => service.inviteUser({ actor: owner, target_user_id: 'u-b', role: Role.INSTITUTION_ADMIN, institution_id: 'inst-2' }),
+    /Cross-institution access blocked/,
   );
 });
 
-test('school_admin can manage school data and send messages but cannot transfer ownership', () => {
+test('hierarchy supports Country -> Institution -> Division -> Unit -> Group', () => {
+  const actor = { user_id: 'u-a', role: Role.INSTITUTION_ADMIN, institution_id: 'inst-1' };
+  const hierarchy = new HierarchyService();
+
+  const division = hierarchy.createDivision({ actor, institution_id: 'inst-1', country_code: 'ZA', type: 'grade', name: 'Grade 9' });
+  const unit = hierarchy.createUnit({ actor, institution_id: 'inst-1', division_id: division.id, name: 'Class 9A' });
+  const group = hierarchy.createGroup({ actor, institution_id: 'inst-1', unit_id: unit.id, name: 'Mathematics' });
+
+  assert.equal(division.institution_id, 'inst-1');
+  assert.equal(unit.division_id, division.id);
+  assert.equal(group.unit_id, unit.id);
+});
+
+test('message compose once, apply compliance, queue by channel, and audit sends', async () => {
   const auditLog = new AuditLog();
-  const dataService = new SchoolDataService({ auditLog });
-  const messageService = new MessageService({ auditLog });
-  const membershipService = new SchoolMembershipService({ auditLog });
+  const queue = new RetryQueue({ maxRetries: 2 });
+  const connectors = new ConnectorRegistry();
+  const service = new MessagingService({ auditLog, queue, connectors });
 
-  const admin = { user_id: 'u-admin', role: Role.SCHOOL_ADMIN, school_id: 's1' };
-
-  const imported = dataService.importData({
-    actor: admin,
-    school_id: 's1',
-    datasetName: 'students.csv',
-    rowCount: 42,
+  service.addTemplate({
+    id: 'tmpl-1',
+    subject: 'Update for {institution_name}',
+    email_html: '<p>Hello {institution_name}</p><p>{link}</p>',
+    whatsapp_text: 'Hi from {institution_name} {link}',
+    social_post_text: '{institution_name} says hello {link}',
   });
 
-  const msg = messageService.sendMessage({
-    actor: admin,
-    school_id: 's1',
-    channel: 'email',
-    subject: 'Notice',
-    body: 'Welcome',
+  const actor = { user_id: 'u-admin', role: Role.INSTITUTION_ADMIN, institution_id: 'inst-1' };
+  const institution = { institution_id: 'inst-1', country_code: 'ZA', compliance_profile: loadComplianceProfile('ZA') };
+
+  const message = service.createMessage({
+    actor,
+    institution,
+    templateId: 'tmpl-1',
+    variables: { institution_name: 'Campus A' },
+    target_scope: { division: 'Grade 9', unit: 'Class 9A', group: 'Math' },
+    channels: ['email', 'whatsapp'],
+    link: 'https://example.org/notice',
   });
 
-  assert.equal(imported.school_id, 's1');
-  assert.equal(msg.school_id, 's1');
+  assert.match(message.content.email_html, /South Africa school communication policy/);
+
+  service.queueMessageSend({
+    message,
+    recipientsByChannel: {
+      email: ['a@x.org', 'b@x.org'],
+      whatsapp: ['+27820000000'],
+    },
+  });
+
+  const jobs = await service.processQueue();
+  assert.equal(jobs.filter((j) => j.status === 'done').length, 2);
+
+  const sends = auditLog.list({ type: AuditEventType.MESSAGE_SENT, institution_id: 'inst-1' });
+  assert.equal(sends.length, 2);
+  assert.ok(sends[0].payload_hash);
+});
+
+test('data import allowed for admin and blocked for viewer', () => {
+  const auditLog = new AuditLog();
+  const svc = new InstitutionDataService({ auditLog });
+  const admin = { user_id: 'u-admin', role: Role.INSTITUTION_ADMIN, institution_id: 'inst-1' };
+  const viewer = { user_id: 'u-viewer', role: Role.INSTITUTION_VIEWER, institution_id: 'inst-1' };
+
+  const imported = svc.importContactsCsv({ actor: admin, institution_id: 'inst-1', country_code: 'ZA', file_name: 'contacts.csv', row_count: 30 });
+  assert.equal(imported.file_name, 'contacts.csv');
 
   assert.throws(
-    () =>
-      membershipService.transferOwnership({
-        actor: admin,
-        newOwnerUserId: 'u-x',
-        school_id: 's1',
-      }),
-    /cannot transfer school ownership/,
+    () => svc.importContactsCsv({ actor: viewer, institution_id: 'inst-1', country_code: 'ZA', file_name: 'contacts.csv', row_count: 30 }),
+    /cannot import data/,
   );
 });
 
-test('school_viewer can only read/export and cannot send/edit', () => {
-  const auditLog = new AuditLog();
-  const dataService = new SchoolDataService({ auditLog });
-  const messageService = new MessageService({ auditLog });
-  const viewer = { user_id: 'u-viewer', role: Role.SCHOOL_VIEWER, school_id: 's1' };
+test('all routes require auth in admin console server', async () => {
+  assert.equal(parseAuth({ headers: {} }), null);
 
-  assert.throws(
-    () =>
-      dataService.editData({
-        actor: viewer,
-        school_id: 's1',
-        entityType: 'student',
-        entityId: 'st1',
-        changes: { grade: 'A' },
-      }),
-    /cannot modify school data/,
-  );
+  const server = createServer();
+  await new Promise((resolve) => server.listen(0, resolve));
+  const { port } = server.address();
 
-  assert.throws(
-    () =>
-      messageService.sendMessage({
-        actor: viewer,
-        school_id: 's1',
-        channel: 'sms',
-        subject: 'test',
-        body: 'test',
-      }),
-    /cannot send messages/,
-  );
-});
+  const unauthorized = await fetch(`http://127.0.0.1:${port}/`);
+  assert.equal(unauthorized.status, 401);
 
-test('tenant isolation blocks cross-school access and requires school_id in queries', () => {
-  const scoped = withSchoolScope({ entity: 'grades' }, 's99');
-  assert.equal(scoped.school_id, 's99');
-  assert.doesNotThrow(() => assertTenantScopedQuery(scoped));
-  assert.throws(() => assertTenantScopedQuery({ entity: 'grades' }), /must include school_id/);
+  const authorized = await fetch(`http://127.0.0.1:${port}/admin`, {
+    headers: { Authorization: 'Bearer user-1:institution_admin:inst-1' },
+  });
+  assert.equal(authorized.status, 200);
 
-  const auditLog = new AuditLog();
-  const messageService = new MessageService({ auditLog });
-  const actor = { user_id: 'u-admin', role: Role.SCHOOL_ADMIN, school_id: 's1' };
-
-  assert.throws(
-    () =>
-      messageService.sendMessage({
-        actor,
-        school_id: 's2',
-        channel: 'email',
-        subject: 'bad',
-        body: 'cross tenant',
-      }),
-    /school_id mismatch/,
-  );
-});
-
-test('audit logs include invites, role changes, imports, edits, and message sends', () => {
-  const auditLog = new AuditLog();
-  const membershipService = new SchoolMembershipService({ auditLog });
-  const dataService = new SchoolDataService({ auditLog });
-  const messageService = new MessageService({ auditLog });
-  const owner = { user_id: 'u-owner', role: Role.SCHOOL_OWNER, school_id: 's1' };
-
-  membershipService.inviteUser({ actor: owner, targetUserId: 'u-a', targetRole: Role.SCHOOL_ADMIN, school_id: 's1' });
-  membershipService.changeRole({ actor: owner, targetUserId: 'u-a', newRole: Role.SCHOOL_VIEWER, school_id: 's1' });
-  dataService.importData({ actor: owner, school_id: 's1', datasetName: 'courses.csv', rowCount: 10 });
-  dataService.editData({ actor: owner, school_id: 's1', entityType: 'course', entityId: 'c-1', changes: { title: 'Math' } });
-  messageService.sendMessage({ actor: owner, school_id: 's1', channel: 'in-app', subject: 'hello', body: 'world' });
-
-  const eventTypes = auditLog.listBySchool('s1').map((entry) => entry.type);
-  assert.deepEqual(eventTypes, [
-    AuditEventType.USER_INVITED,
-    AuditEventType.USER_ROLE_CHANGED,
-    AuditEventType.DATA_IMPORTED,
-    AuditEventType.DATA_EDITED,
-    AuditEventType.MESSAGE_SENT,
-  ]);
+  await new Promise((resolve) => server.close(resolve));
 });

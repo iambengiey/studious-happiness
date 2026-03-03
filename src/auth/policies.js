@@ -1,4 +1,4 @@
-const { RolePermissions } = require('./roles');
+const { Role, RolePermissions } = require('./roles');
 
 class AuthorizationError extends Error {
   constructor(message) {
@@ -15,61 +15,62 @@ function permissionsFor(role) {
   return permissions;
 }
 
-function canAssignRole(actorRole, targetRole) {
-  return permissionsFor(actorRole).assignRoles.includes(targetRole);
-}
-
-function assertCanInvite(actorRole, targetRole) {
-  const permissions = permissionsFor(actorRole);
-  if (!permissions.inviteUsers || !canAssignRole(actorRole, targetRole)) {
-    throw new AuthorizationError(`${actorRole} cannot invite user with role ${targetRole}`);
+function assertAuthenticated(user) {
+  if (!user || !user.user_id || !user.role) {
+    throw new AuthorizationError('Authentication required');
   }
 }
 
-function assertCanRevoke(actorRole) {
-  if (!permissionsFor(actorRole).revokeAccess) {
-    throw new AuthorizationError(`${actorRole} cannot revoke school access`);
+function assertCanInvite(actor, targetRole) {
+  assertAuthenticated(actor);
+  const permissions = permissionsFor(actor.role);
+  if (!permissions.inviteUsers || !permissions.assignRoles.includes(targetRole)) {
+    throw new AuthorizationError(`${actor.role} cannot invite role ${targetRole}`);
   }
 }
 
-function assertCanTransferOwnership(actorRole) {
-  if (!permissionsFor(actorRole).transferOwnership) {
-    throw new AuthorizationError(`${actorRole} cannot transfer school ownership`);
+function assertCanRemove(actor) {
+  assertAuthenticated(actor);
+  if (!permissionsFor(actor.role).removeUsers) {
+    throw new AuthorizationError(`${actor.role} cannot remove institution users`);
   }
 }
 
-function assertCanManageSchoolData(actorRole) {
-  if (!permissionsFor(actorRole).manageSchoolData) {
-    throw new AuthorizationError(`${actorRole} cannot modify school data`);
+function assertCanImport(actor) {
+  assertAuthenticated(actor);
+  if (!permissionsFor(actor.role).importData) {
+    throw new AuthorizationError(`${actor.role} cannot import data`);
   }
 }
 
-function assertCanSendMessage(actorRole) {
-  if (!permissionsFor(actorRole).sendMessages) {
-    throw new AuthorizationError(`${actorRole} cannot send messages`);
+function assertCanCreateGroups(actor) {
+  assertAuthenticated(actor);
+  if (!permissionsFor(actor.role).createGroups) {
+    throw new AuthorizationError(`${actor.role} cannot create groups`);
   }
 }
 
-function assertCanReadDashboards(actorRole) {
-  if (!permissionsFor(actorRole).readDashboards) {
-    throw new AuthorizationError(`${actorRole} cannot read dashboards/logs`);
+function assertCanSend(actor) {
+  assertAuthenticated(actor);
+  if (!permissionsFor(actor.role).sendMessages) {
+    throw new AuthorizationError(`${actor.role} cannot send messages`);
   }
 }
 
-function assertCanExportReports(actorRole) {
-  if (!permissionsFor(actorRole).exportReports) {
-    throw new AuthorizationError(`${actorRole} cannot export reports`);
+function assertInstitutionScopedUser(user) {
+  assertAuthenticated(user);
+  if (user.role !== Role.PLATFORM_ADMIN && !user.institution_id) {
+    throw new AuthorizationError('Non-platform users must belong to exactly one institution_id');
   }
 }
 
 module.exports = {
   AuthorizationError,
+  assertAuthenticated,
   assertCanInvite,
-  assertCanRevoke,
-  assertCanTransferOwnership,
-  assertCanManageSchoolData,
-  assertCanSendMessage,
-  assertCanReadDashboards,
-  assertCanExportReports,
-  canAssignRole,
+  assertCanRemove,
+  assertCanImport,
+  assertCanCreateGroups,
+  assertCanSend,
+  assertInstitutionScopedUser,
 };
