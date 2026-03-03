@@ -1,0 +1,10 @@
+{
+  "name": "studious-happiness",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test",
+    "verify:no-public-docs": "./scripts/verify-no-public-docs.sh"
+  }
+}
