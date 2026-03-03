@@ -1,0 +1,67 @@
+[build]
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[redirects]]
+  from = "/README.md"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/readme"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/docs"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/doc"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/deploy"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/how-to-deploy"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/installation"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/setup"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*.md"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*.txt"
+  to = "/404"
+  status = 404
+  force = true
