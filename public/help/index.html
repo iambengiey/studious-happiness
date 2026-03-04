@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Help Center | CampusConnect Africa</title>
+    <meta name="description" content="Admin help and FAQs for CampusConnect Africa." />
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033;line-height:1.5}
+      header{background:#0f3b8f;color:#fff;padding:20px}
+      main{max-width:980px;margin:0 auto;padding:28px 20px}
+      .card{background:#fff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);padding:22px;margin-bottom:18px}
+      details{border:1px solid #dfe5f2;border-radius:8px;padding:12px 14px;background:#fafcff;margin:10px 0}
+      summary{cursor:pointer;font-weight:700}
+      code{background:#eef3ff;padding:2px 6px;border-radius:6px}
+      a{color:#0f3b8f}
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>CampusConnect Africa Help Center</h1>
+      <p>Admin-only multi-country communications console support.</p>
+      <a href="/">Home</a>
+    </header>
+    <main>
+      <section class="card">
+        <h2>FAQs</h2>
+        <details><summary>Where do I update database details?</summary><p>Set environment variables on your host/server: <code>DATABASE_URL</code> and optional <code>DATABASE_SSL=true</code>. Do not place DB credentials in UI forms or committed files.</p></details>
+        <details><summary>How do I confirm DB config is loaded?</summary><p>Start the server and call authenticated <code>/health</code>. The response includes <code>databaseConfigured</code>.</p></details>
+        <details><summary>Can platform admins access all institutions?</summary><p>Yes, platform_admin is global. Other roles are isolated to a single <code>institution_id</code>.</p></details>
+        <details><summary>How are country compliance rules applied?</summary><p>A country compliance profile is loaded at institution onboarding and auto-applied to message disclaimers, retention, and templates.</p></details>
+      </section>
+    </main>
+  </body>
+</html>

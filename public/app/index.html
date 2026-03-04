@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Console | CampusConnect Africa</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033}
+      header{background:#0f3b8f;color:#fff;padding:16px 20px}
+      main{max-width:980px;margin:0 auto;padding:22px}
+      .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,.08);margin-bottom:16px}
+      .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+      .badge{display:inline-block;padding:4px 8px;background:#eef3ff;border-radius:6px;color:#0f3b8f;font-weight:700}
+      button{padding:10px 12px;border:0;border-radius:8px;background:#0f3b8f;color:#fff;cursor:pointer}
+      a{color:#0f3b8f}
+      code{background:#eef3ff;padding:2px 6px;border-radius:6px}
+    </style>
+  </head>
+  <body>
+    <header><h1 style="margin:0">CampusConnect Africa</h1></header>
+    <main>
+      <section class="card">
+        <h2>Session</h2>
+        <p id="session">Not signed in.</p>
+        <button id="logout">Sign out</button>
+      </section>
+
+      <section class="card">
+        <h2>Available Functions</h2>
+        <div id="functions" class="grid"></div>
+      </section>
+
+      <section class="card">
+        <h2>Database Setup (where to enter DB details)</h2>
+        <p>Set database config in server environment variables, not in this UI:</p>
+        <ul>
+          <li><code>DATABASE_URL</code> (required)</li>
+          <li><code>DATABASE_SSL=true</code> (if provider requires TLS)</li>
+          <li><code>PORT</code>, <code>APP_NAME</code> (optional)</li>
+        </ul>
+        <p>Example: <code>DATABASE_URL=postgres://user:pass@host:5432/dbname npm start</code></p>
+      </section>
+    </main>
+    <script>
+      const sessionRaw = localStorage.getItem('cca_session');
+      if (!sessionRaw) {
+        window.location.href = '/login/';
+      } else {
+        const session = JSON.parse(sessionRaw);
+        document.getElementById('session').innerHTML =
+          `Signed in as <strong>${session.email}</strong> · <span class="badge">${session.role}</span> · institution_id: <strong>${session.institution_id || 'GLOBAL'}</strong>`;
+
+        const functionsByRole = {
+          platform_admin: ['Onboard country institutions', 'Manage compliance profiles', 'Audit and reporting'],
+          institution_owner: ['Invite/remove users', 'Assign admin/viewer roles', 'Approve sends'],
+          institution_admin: ['Import contacts', 'Create groups', 'Send messages'],
+          institution_viewer: ['Read logs', 'View reporting dashboards']
+        };
+
+        const list = functionsByRole[session.role] || [];
+        const host = document.getElementById('functions');
+        list.forEach((item) => {
+          const box = document.createElement('div');
+          box.className = 'card';
+          box.innerHTML = `<strong>${item}</strong>`;
+          host.appendChild(box);
+        });
+      }
+
+      document.getElementById('logout').addEventListener('click', () => {
+        localStorage.removeItem('cca_session');
+        window.location.href = '/login/';
+      });
+    </script>
+  </body>
+</html>
