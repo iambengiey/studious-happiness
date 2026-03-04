@@ -1,6 +1,7 @@
 const http = require('http');
 const { URL } = require('url');
 const { renderDashboard } = require('./ui/adminConsole');
+const { loadConfig } = require('./config/env');
 
 function parseAuth(req) {
   const header = req.headers.authorization || '';
@@ -17,7 +18,7 @@ function parseAuth(req) {
   };
 }
 
-function createServer() {
+function createServer(config = loadConfig()) {
   return http.createServer((req, res) => {
     const user = parseAuth(req);
     if (!user) {
@@ -35,7 +36,7 @@ function createServer() {
 
     if (url.pathname === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, user }));
+      res.end(JSON.stringify({ ok: true, app: config.appName, databaseConfigured: config.databaseConfigured, user }));
       return;
     }
 
@@ -45,10 +46,12 @@ function createServer() {
 }
 
 if (require.main === module) {
-  const port = process.env.PORT || 3000;
-  createServer().listen(port, () => {
+  const config = loadConfig();
+  createServer(config).listen(config.port, () => {
     // eslint-disable-next-line no-console
-    console.log(`CampusConnect Africa admin console listening on ${port}`);
+    console.log(`${config.appName} admin console listening on ${config.port}`);
+    // eslint-disable-next-line no-console
+    console.log(`DATABASE_URL configured: ${config.databaseConfigured ? 'yes' : 'no'}`);
   });
 }
 

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>App | Academics OnCloud</title>
+    <title>Admin Console | CampusConnect Africa</title>
     <style>
       body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033}
       header{background:#0f3b8f;color:#fff;padding:16px 20px}
@@ -11,15 +11,13 @@
       .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,.08);margin-bottom:16px}
       .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
       .badge{display:inline-block;padding:4px 8px;background:#eef3ff;border-radius:6px;color:#0f3b8f;font-weight:700}
-      button,a.btn{padding:10px 12px;border:0;border-radius:8px;background:#0f3b8f;color:#fff;text-decoration:none;cursor:pointer;display:inline-block}
-      a.link{color:#0f3b8f}
-      ul{margin:8px 0 0 18px}
+      button{padding:10px 12px;border:0;border-radius:8px;background:#0f3b8f;color:#fff;cursor:pointer}
+      a{color:#0f3b8f}
+      code{background:#eef3ff;padding:2px 6px;border-radius:6px}
     </style>
   </head>
   <body>
-    <header>
-      <h1 style="margin:0">Academics OnCloud</h1>
-    </header>
+    <header><h1 style="margin:0">CampusConnect Africa</h1></header>
     <main>
       <section class="card">
         <h2>Session</h2>
@@ -33,30 +31,30 @@
       </section>
 
       <section class="card">
-        <h2>Next step for production login</h2>
+        <h2>Database Setup (where to enter DB details)</h2>
+        <p>Set database config in server environment variables, not in this UI:</p>
         <ul>
-          <li>Connect this page to your real auth provider.</li>
-          <li>Use backend APIs for invites, role updates, messaging, and data operations.</li>
-          <li>Enable tenant checks with <code>school_id</code> on all API calls.</li>
+          <li><code>DATABASE_URL</code> (required)</li>
+          <li><code>DATABASE_SSL=true</code> (if provider requires TLS)</li>
+          <li><code>PORT</code>, <code>APP_NAME</code> (optional)</li>
         </ul>
-        <p><a class="link" href="/help/">Help Center</a></p>
+        <p>Example: <code>DATABASE_URL=postgres://user:pass@host:5432/dbname npm start</code></p>
       </section>
     </main>
     <script>
-      const sessionRaw = localStorage.getItem('aoc_session');
+      const sessionRaw = localStorage.getItem('cca_session');
       if (!sessionRaw) {
         window.location.href = '/login/';
       } else {
         const session = JSON.parse(sessionRaw);
         document.getElementById('session').innerHTML =
-          `Signed in as <strong>${session.email}</strong> · ` +
-          `<span class="badge">${session.role}</span> · school_id: <strong>${session.school_id}</strong>`;
+          `Signed in as <strong>${session.email}</strong> · <span class="badge">${session.role}</span> · institution_id: <strong>${session.institution_id || 'GLOBAL'}</strong>`;
 
         const functionsByRole = {
-          platform_admin: ['Invite users', 'Change roles', 'Revoke access', 'Transfer ownership', 'Manage data', 'Send messages', 'View dashboards/logs', 'Export reports'],
-          school_owner: ['Invite users', 'Assign admin/viewer roles', 'Revoke access', 'Transfer ownership', 'Manage data', 'Send messages', 'View dashboards/logs', 'Export reports'],
-          school_admin: ['Manage school data', 'Send messages', 'View dashboards/logs', 'Export reports'],
-          school_viewer: ['View dashboards/logs', 'Export reports']
+          platform_admin: ['Onboard country institutions', 'Manage compliance profiles', 'Audit and reporting'],
+          institution_owner: ['Invite/remove users', 'Assign admin/viewer roles', 'Approve sends'],
+          institution_admin: ['Import contacts', 'Create groups', 'Send messages'],
+          institution_viewer: ['Read logs', 'View reporting dashboards']
         };
 
         const list = functionsByRole[session.role] || [];
@@ -70,7 +68,7 @@
       }
 
       document.getElementById('logout').addEventListener('click', () => {
-        localStorage.removeItem('aoc_session');
+        localStorage.removeItem('cca_session');
         window.location.href = '/login/';
       });
     </script>

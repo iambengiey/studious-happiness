@@ -3,73 +3,32 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Help Center | Academics OnCloud</title>
-    <meta name="description" content="Help center and FAQs for parents, teachers, admins, and school owners using Academics OnCloud." />
+    <title>Help Center | CampusConnect Africa</title>
+    <meta name="description" content="Admin help and FAQs for CampusConnect Africa." />
     <style>
       body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033;line-height:1.5}
       header{background:#0f3b8f;color:#fff;padding:20px}
       main{max-width:980px;margin:0 auto;padding:28px 20px}
       .card{background:#fff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);padding:22px;margin-bottom:18px}
-      h1,h2,h3{margin-top:0}
       details{border:1px solid #dfe5f2;border-radius:8px;padding:12px 14px;background:#fafcff;margin:10px 0}
       summary{cursor:pointer;font-weight:700}
+      code{background:#eef3ff;padding:2px 6px;border-radius:6px}
       a{color:#0f3b8f}
-      .toplinks{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
     </style>
   </head>
   <body>
     <header>
-      <h1>Help Center</h1>
-      <p>Answers to common user questions across login, dashboards, messaging, reports, and school administration.</p>
-      <div class="toplinks">
-        <a href="/">Home</a>
-        <a href="/login">Login</a>
-      </div>
+      <h1>CampusConnect Africa Help Center</h1>
+      <p>Admin-only multi-country communications console support.</p>
+      <a href="/">Home</a>
     </header>
     <main>
       <section class="card">
-        <h2>Getting Started FAQs</h2>
-        <details><summary>How do I log in?</summary><p>Use your school-provided email/username and password on the login page. If you do not have access, contact your school administrator.</p></details>
-        <details><summary>I forgot my password. What should I do?</summary><p>Use the password reset option on the login screen. If you still cannot access your account, ask your school admin to resend an invite/reset.</p></details>
-        <details><summary>Can I use the portal on mobile?</summary><p>Yes. The portal is responsive and works on current mobile browsers.</p></details>
-        <details><summary>Which roles can access the system?</summary><p>Platform Admin, School Owner, School Admin, and School Viewer roles are supported, with different permissions.</p></details>
-      </section>
-
-      <section class="card">
-        <h2>Dashboard & Data FAQs</h2>
-        <details><summary>Why can’t I see some dashboard data?</summary><p>Your role or school access may limit what you can view. Ensure you are logged into the correct school tenant.</p></details>
-        <details><summary>How often is dashboard data updated?</summary><p>Data refresh timing depends on your school’s import/update schedule.</p></details>
-        <details><summary>Can I export reports?</summary><p>Yes, users with report access can export supported reports from the reports or dashboard area.</p></details>
-        <details><summary>Can I edit attendance/grades/student records?</summary><p>Only users with edit permissions (for example school admins/owners) can modify school data.</p></details>
-      </section>
-
-      <section class="card">
-        <h2>Messaging FAQs</h2>
-        <details><summary>How do I send a school message?</summary><p>Open the messaging section, choose audience/channel, write your message, and send. Message actions may be role-restricted.</p></details>
-        <details><summary>Why can’t I send messages?</summary><p>Your role may be view-only. Ask your school owner/admin if you need messaging access.</p></details>
-        <details><summary>Can I see sent-message history?</summary><p>Yes, where enabled. Message events are recorded for operational auditability.</p></details>
-      </section>
-
-      <section class="card">
-        <h2>School Admin & Owner FAQs</h2>
-        <details><summary>How do I invite a new user?</summary><p>School owners can invite users and assign allowed roles (such as school admin or school viewer).</p></details>
-        <details><summary>Who can change roles?</summary><p>Role management is restricted to privileged roles such as school owners (and platform admins, where applicable).</p></details>
-        <details><summary>Who can transfer school ownership?</summary><p>Ownership transfer is restricted to authorized owners/admin-level governance flows.</p></details>
-        <details><summary>Can a school admin delete a school?</summary><p>No. School admins can manage school operations but cannot delete or re-own the school.</p></details>
-      </section>
-
-      <section class="card">
-        <h2>Access & Security FAQs</h2>
-        <details><summary>How is school data separated?</summary><p>All school operations are tenant-scoped so users only access data for their assigned school.</p></details>
-        <details><summary>Are admin actions audited?</summary><p>Yes. Key events (invites, role updates, imports/edits, and messaging actions) are logged.</p></details>
-        <details><summary>I think I can see another school’s data. What should I do?</summary><p>Report it immediately to support/your platform administrator with screenshots and time of occurrence.</p></details>
-      </section>
-
-      <section class="card">
-        <h2>Troubleshooting FAQs</h2>
-        <details><summary>The page is blank or not loading.</summary><p>Refresh, clear cache, try another browser, and confirm your internet connection.</p></details>
-        <details><summary>I see a 404 page for a link.</summary><p>The page may have moved or the URL may be incorrect. Return home and navigate from there.</p></details>
-        <details><summary>Who do I contact for support?</summary><p>Please contact your school administrator or your platform support contact.</p></details>
+        <h2>FAQs</h2>
+        <details><summary>Where do I update database details?</summary><p>Set environment variables on your host/server: <code>DATABASE_URL</code> and optional <code>DATABASE_SSL=true</code>. Do not place DB credentials in UI forms or committed files.</p></details>
+        <details><summary>How do I confirm DB config is loaded?</summary><p>Start the server and call authenticated <code>/health</code>. The response includes <code>databaseConfigured</code>.</p></details>
+        <details><summary>Can platform admins access all institutions?</summary><p>Yes, platform_admin is global. Other roles are isolated to a single <code>institution_id</code>.</p></details>
+        <details><summary>How are country compliance rules applied?</summary><p>A country compliance profile is loaded at institution onboarding and auto-applied to message disclaimers, retention, and templates.</p></details>
       </section>
     </main>
   </body>

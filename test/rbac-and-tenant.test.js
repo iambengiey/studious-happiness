@@ -11,6 +11,7 @@ const { MessagingService } = require('../src/services/messageService');
 const { RetryQueue } = require('../src/jobs/queue');
 const { ConnectorRegistry } = require('../src/messaging/connectors');
 const { createServer, parseAuth } = require('../src/server');
+const { loadConfig } = require('../src/config/env');
 
 test('onboarding loads country compliance profile and enforces institution scoping', () => {
   const auditLog = new AuditLog();
@@ -123,4 +124,18 @@ test('all routes require auth in admin console server', async () => {
   assert.equal(authorized.status, 200);
 
   await new Promise((resolve) => server.close(resolve));
+});
+
+
+test('env loader flags database configuration', () => {
+  const previous = process.env.DATABASE_URL;
+  process.env.DATABASE_URL = 'postgres://demo';
+  const configured = loadConfig();
+  assert.equal(configured.databaseConfigured, true);
+
+  delete process.env.DATABASE_URL;
+  const missing = loadConfig();
+  assert.equal(missing.databaseConfigured, false);
+
+  if (previous) process.env.DATABASE_URL = previous;
 });
