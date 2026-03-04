@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login | CampusConnect Africa</title>
+    <meta name="description" content="Admin login for CampusConnect Africa." />
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033}
+      main{max-width:520px;margin:40px auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+      label{display:block;margin:12px 0 6px;font-weight:700}
+      input,select,button{width:100%;padding:10px;border:1px solid #ccd6ea;border-radius:8px;font-size:14px}
+      button{margin-top:16px;background:#0f3b8f;color:#fff;font-weight:700;cursor:pointer}
+      .hint{font-size:13px;color:#4f5d78}
+      a{color:#0f3b8f}
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>CampusConnect Africa Login</h1>
+      <p class="hint">Admin-only access. For production, wire to your SSO/IdP.</p>
+      <form id="loginForm">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="admin@institution.org" required />
+
+        <label for="role">Role (demo)</label>
+        <select id="role" required>
+          <option value="institution_owner">Institution Owner</option>
+          <option value="institution_admin">Institution Admin</option>
+          <option value="institution_viewer">Institution Viewer</option>
+          <option value="platform_admin">Platform Admin</option>
+        </select>
+
+        <label for="institutionId">Institution ID</label>
+        <input id="institutionId" type="text" placeholder="inst-001" />
+
+        <button type="submit">Sign in</button>
+      </form>
+      <p class="hint">Need setup help? <a href="/help/">Open Help Center</a></p>
+    </main>
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const role = document.getElementById('role').value;
+        const session = {
+          email: document.getElementById('email').value,
+          role,
+          institution_id: role === 'platform_admin' ? null : document.getElementById('institutionId').value,
+          signed_in_at: new Date().toISOString()
+        };
+        localStorage.setItem('cca_session', JSON.stringify(session));
+        window.location.href = '/app/';
+      });
+    </script>
+  </body>
+</html>

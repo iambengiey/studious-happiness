@@ -1,2 +1,0 @@
-# studious-happiness
-academics
